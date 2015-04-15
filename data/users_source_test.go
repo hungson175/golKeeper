@@ -9,18 +9,25 @@ import (
 var compareERFormat = "Expected %v but return %v"
 var errorFormat = "Returned err %v"
 
+const DbName = "golkeeper"
+
+type testFunc func(*UsersSource, *testing.T)
+
+var testCases = []testFunc{
+	testCreateAndGetAllUsers,
+	testGetUserMethods,
+	testGetUserByUsername,
+	testGetUserByUsername,
+}
+
 func TestAll(test *testing.T) {
-	ds, err := NewDataSource()
+	ds, err := NewDataSource(DbName)
 	if err != nil {
 		panic(err)
 	}
 	defer ds.db.Close()
 
-	type testFunc func(*UsersSource, *testing.T)
-	testCases := []testFunc{
-		testCreateAndGetAllUsers,
-		testGetUserMethods,
-	}
+	//Register test
 
 	src := &UsersSource{ds.db}
 
@@ -51,7 +58,7 @@ func createSampleData(src *UsersSource, test *testing.T) Users {
 		if err != nil {
 			test.Errorf("Cannot create user %v %v", u, err)
 		}
-		if !newUser.equalsExceptId(&u) {
+		if !newUser.equalsExceptID(&u) {
 			test.Errorf(compareERFormat, u, newUser)
 		}
 	}
@@ -95,20 +102,10 @@ func logError(test *testing.T, err error) {
 	test.Errorf(errorFormat, err)
 }
 
-type EqualChecker interface {
-	isEqual(x *EqualChecker) bool
-}
-
-func checkEqual(test *testing.T, expected interface{}, result interface{}) {
-	if !reflect.DeepEqual(expected, result) {
-		test.Errorf("Wrong type: expected %T but return %T", expected, result)
-		return
-	}
-
-}
 func typeOf(x interface{}) string {
 	return fmt.Sprintf("%T", x)
 }
+
 func testGetUserMethods(src *UsersSource, test *testing.T) {
 	createSampleData(src, test)
 	list, err := src.getAllUsers()
@@ -120,8 +117,31 @@ func testGetUserMethods(src *UsersSource, test *testing.T) {
 		if err != nil {
 			logError(test, err)
 		}
-		if reflect.DeepEqual(expected, result) {
+		if !reflect.DeepEqual(expected, *result) {
 			test.Errorf(compareERFormat, expected, result)
 		}
+	}
+}
+
+func testGetUserByUsername(src *UsersSource, test *testing.T) {
+	users := createSampleData(src, test)
+	for _, expected := range users {
+		result, err := src.getUserByUsername(expected.username)
+		if err != nil {
+			logError(test, err)
+		}
+		if expected.password != result.password {
+			test.Errorf(compareERFormat, expected.password, result.password)
+		}
+	}
+}
+
+func testUpdateUser(src *UsersSource, test *testing.T) {
+	users := createSampleData(src, test)
+	//change user/pass
+	for _, user := range users {
+		v, _ := src.getUserByUsername(user.username)
+		v.password += "+mod"
+		src.updateUser(id, &v)
 	}
 }

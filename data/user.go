@@ -25,7 +25,7 @@ func (u *User) GetAuthToken() string {
 	return utils.GetMD5Hash(s)
 }
 
-func (u *User) equalsExceptId(v *User) bool {
+func (u *User) equalsExceptID(v *User) bool {
 	return (u.username == v.username && u.password == v.password)
 }
 

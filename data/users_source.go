@@ -58,7 +58,7 @@ func (src *UsersSource) restoreUsersTable(list Users) error {
 func (src *UsersSource) getUser(id int) (*User, error) {
 	u := User{}
 	err := src.db.QueryRow("select * from users where id = ?", id).Scan(&u.id, &u.username, &u.password)
-	return u, err
+	return &u, err
 }
 
 //Read: from username
