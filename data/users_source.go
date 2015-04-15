@@ -3,6 +3,7 @@ package data
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 )
 
 type UsersSource struct {
@@ -65,6 +66,10 @@ func (src *UsersSource) getUser(id int) (*User, error) {
 func (src *UsersSource) getUserByUsername(username string) (*User, error) {
 	u := User{}
 	err := src.db.QueryRow("select * from users where username=?", username).Scan(&u.id, &u.username, &u.password)
+	if err != nil {
+		return nil, err
+	}
+
 	return &u, err
 }
 
@@ -88,14 +93,32 @@ func (src *UsersSource) getAllUsers() (Users, error) {
 	return list, err
 }
 
-//Update
-func (src *UsersSource) updateUser(id int) (*User, error) {
-	return nil, NotImplementedError{"updateUser"}
+//Update: only change content - not ID !
+func (src *UsersSource) updateUser(id int, user *User) (*User, error) {
+	result, err := src.db.Exec("update users set username=?, password = ? where id=?", user.username, user.password, id)
+	if err != nil {
+		return nil, err
+	}
+	rc, _ := result.RowsAffected()
+	if rc == 0 {
+		return nil, errors.New(fmt.Sprintf("Non-existent id"))
+	}
+	if rc != 1 {
+		return nil, errors.New("Impossible")
+	}
+	newUser := *user
+	idd, _ := result.LastInsertId()
+	newUser.id = int(idd)
+	return &newUser, nil
 }
 
 //Delete
 func (src *UsersSource) deleteUser(id int) error {
-	return NotImplementedError{"deleteUser"}
+	_, err := src.db.Exec("delete from users where id = ?", id)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 //Delete: all
