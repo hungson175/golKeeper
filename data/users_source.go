@@ -10,6 +10,54 @@ type UsersSource struct {
 	db *sql.DB
 }
 
+var userDataSource = UsersSource{db: GetDBInstance()}
+
+func GetUserSource() *UsersSource {
+	return &userDataSource
+}
+
+func CreateUser(username string, password string) (*User, error) {
+	inputUser := User{Username: username, Password: password}
+	createdUser, err := userDataSource.createUser(&inputUser)
+	if err != nil {
+		return nil, err
+	}
+	return createdUser, err
+}
+
+type InvalidPasswordError struct{}
+
+func (e InvalidPasswordError) Error() string {
+	return "Invalid password"
+}
+
+//Login: return user and nil if success, otherwise return not nil error
+func Login(username string, password string) (*User, error) {
+	ouser, err := userDataSource.getUserByUsername(username)
+	if err != nil {
+		//TOLEARN: here - in real code, if oyou dont define what error is that => pay later on !
+		return nil, err
+	}
+	if ouser.Password != password {
+		return nil, InvalidPasswordError{}
+	} else {
+		return ouser, nil
+	}
+}
+
+func ChangePassword(username string, oldPassword string, newPassword string) (*User, error) {
+	user, err := Login(username, oldPassword)
+	if err != nil {
+		return nil, err
+	}
+	user.Password = newPassword
+	user, err = userDataSource.updateUser(user.ID, user)
+	if err != nil {
+		return nil, err
+	}
+	return user, err
+}
+
 //CRUD
 
 //TODO: test - 2 users with the same user names
@@ -21,12 +69,12 @@ func (src *UsersSource) createUser(u *User) (*User, error) {
 	}
 	newUser := *u
 
-	result, err := src.db.Exec("insert into users (username,password) values (?,?)", u.username, u.password)
+	result, err := src.db.Exec("insert into users (username,password) values (?,?)", u.Username, u.Password)
 	if err != nil {
 		return &newUser, err
 	}
 	nid, err := result.LastInsertId()
-	newUser.id = int(nid)
+	newUser.ID = int(nid)
 	return &newUser, err
 }
 
@@ -45,7 +93,7 @@ func (src *UsersSource) restoreUsersTable(list Users) error {
 	for _, u := range list {
 		_, err := tx.Exec(
 			"insert into users (id,username,password) values (?,?,?)",
-			u.id, u.username, u.password)
+			u.ID, u.Username, u.Password)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -58,14 +106,14 @@ func (src *UsersSource) restoreUsersTable(list Users) error {
 //Read
 func (src *UsersSource) getUser(id int) (*User, error) {
 	u := User{}
-	err := src.db.QueryRow("select * from users where id = ?", id).Scan(&u.id, &u.username, &u.password)
+	err := src.db.QueryRow("select * from users where id = ?", id).Scan(&u.ID, &u.Username, &u.Password)
 	return &u, err
 }
 
 //Read: from username
 func (src *UsersSource) getUserByUsername(username string) (*User, error) {
 	u := User{}
-	err := src.db.QueryRow("select * from users where username=?", username).Scan(&u.id, &u.username, &u.password)
+	err := src.db.QueryRow("select * from users where username=?", username).Scan(&u.ID, &u.Username, &u.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +131,7 @@ func (src *UsersSource) getAllUsers() (Users, error) {
 	list := Users{}
 	for rows.Next() {
 		u := User{}
-		err := rows.Scan(&u.id, &u.username, &u.password)
+		err := rows.Scan(&u.ID, &u.Username, &u.Password)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +143,7 @@ func (src *UsersSource) getAllUsers() (Users, error) {
 
 //Update: only change content - not ID !
 func (src *UsersSource) updateUser(id int, user *User) (*User, error) {
-	result, err := src.db.Exec("update users set username=?, password = ? where id=?", user.username, user.password, id)
+	result, err := src.db.Exec("update users set username=?, password = ? where id=?", user.Username, user.Password, id)
 	if err != nil {
 		return nil, err
 	}
@@ -106,10 +154,10 @@ func (src *UsersSource) updateUser(id int, user *User) (*User, error) {
 	if rc != 1 {
 		return nil, errors.New("Impossible")
 	}
-	newUser := *user
+	returnUser := *user
 	idd, _ := result.LastInsertId()
-	newUser.id = int(idd)
-	return &newUser, nil
+	returnUser.ID = int(idd)
+	return &returnUser, nil
 }
 
 //Delete: return

@@ -14,27 +14,26 @@ var errorFormat = "Returned err %v"
 
 type testFunc func(*UsersSource, *testing.T)
 
+var SAMPLE_USERS Users = Users{
+	User{Username: "sphamhung@gmail.com", Password: "dangthaison"},
+	User{Username: "sphamhung@yahoo.com", Password: "abcd1234"},
+	User{Username: "longhm293@gmail.com", Password: "gago1234"},
+	User{Username: "", Password: ""},
+}
 var testCases = []testFunc{
 	testCreateAndGetAllUsers,
 	testGetUserMethods,
 	testGetUserByUsername,
 	testUpdateUser,
 	testDeleteUser,
+	testExportedMethod,
 }
 
 func TestAll(test *testing.T) {
-	ds, err := NewDataSource()
-	if err != nil {
-		panic(err)
-	}
-	defer ds.db.Close()
-
-	//Register test
-
-	src := &UsersSource{ds.db}
+	src := GetUserSource()
 
 	//backup & restore after testing
-	list, err := src.getAllUsers()
+	list, _ := src.getAllUsers()
 
 	defer func(users Users) {
 		err := src.restoreUsersTable(users)
@@ -51,14 +50,9 @@ func TestAll(test *testing.T) {
 }
 
 func createSampleData(src *UsersSource, test *testing.T) Users {
-	users := Users{
-		User{username: "sphamhung@gmail.com", password: "dangthaison"},
-		User{username: "sphamhung@yahoo.com", password: "abcd1234"},
-		User{username: "longhm293@gmail.com", password: "gago1234"},
-		User{username: "", password: ""},
-	}
+
 	src.clearData()
-	for _, u := range users {
+	for _, u := range SAMPLE_USERS {
 		newUser, err := src.createUser(&u)
 		if err != nil {
 			test.Errorf("Cannot create user %v %v", u, err)
@@ -67,13 +61,13 @@ func createSampleData(src *UsersSource, test *testing.T) Users {
 			test.Errorf(compareERFormat, u, newUser)
 		}
 	}
-	return users
+	return SAMPLE_USERS
 }
 
 func getPass(list Users, username string) string {
 	for _, u := range list {
-		if u.username == username {
-			return u.password
+		if u.Username == username {
+			return u.Password
 		}
 	}
 	return ""
@@ -91,13 +85,13 @@ func testCreateAndGetAllUsers(src *UsersSource, test *testing.T) {
 		return
 	}
 	for _, result := range list {
-		uu, err := src.getUserByUsername(result.username)
+		uu, err := src.getUserByUsername(result.Username)
 		if err != nil {
 			test.Errorf(errorFormat, err)
 			return
 		}
-		p := uu.password
-		if p != getPass(users, result.username) {
+		p := uu.Password
+		if p != getPass(users, result.Username) {
 			test.Errorf(errorFormat, err)
 		}
 
@@ -118,7 +112,7 @@ func testGetUserMethods(src *UsersSource, test *testing.T) {
 		logError(test, err)
 	}
 	for _, expected := range list {
-		result, err := src.getUser(expected.id)
+		result, err := src.getUser(expected.ID)
 		if err != nil {
 			logError(test, err)
 		}
@@ -131,12 +125,12 @@ func testGetUserMethods(src *UsersSource, test *testing.T) {
 func testGetUserByUsername(src *UsersSource, test *testing.T) {
 	users := createSampleData(src, test)
 	for _, expected := range users {
-		result, err := src.getUserByUsername(expected.username)
+		result, err := src.getUserByUsername(expected.Username)
 		if err != nil {
 			logError(test, err)
 		}
-		if expected.password != result.password {
-			test.Errorf(compareERFormat, expected.password, result.password)
+		if expected.Password != result.Password {
+			test.Errorf(compareERFormat, expected.Password, result.Password)
 		}
 	}
 }
@@ -145,38 +139,38 @@ func testUpdateUser(src *UsersSource, test *testing.T) {
 	users := createSampleData(src, test)
 	//change user/pass
 	for _, user := range users {
-		v, _ := src.getUserByUsername(user.username)
-		v.password += "+mod"
-		_, err := src.updateUser(v.id, v)
+		v, _ := src.getUserByUsername(user.Username)
+		v.Password += "+mod"
+		_, err := src.updateUser(v.ID, v)
 		if err != nil {
 			logError(test, err)
 		}
-		newUser, _ := src.getUser(v.id)
-		if newUser.password != v.password {
+		newUser, _ := src.getUser(v.ID)
+		if newUser.Password != v.Password {
 			test.Errorf(compareERFormat, *v, *newUser)
 		}
 	}
 
-	_, err := src.updateUser(-1, &User{username: "hellokitty", password: "blahblah"})
+	_, err := src.updateUser(-1, &User{Username: "hellokitty", Password: "blahblah"})
 	if err == nil {
 		test.Errorf("The id %v is nonexistent, but the update method returned non-nil value", -1)
 	}
 
-	v, _ := src.getUserByUsername(users[0].username)
-	src.updateUser(v.id, v)
+	v, _ := src.getUserByUsername(users[0].Username)
+	src.updateUser(v.ID, v)
 }
 
 func testDeleteUser(src *UsersSource, test *testing.T) {
 	users := createSampleData(src, test)
 	for _, user := range users {
-		v, _ := src.getUserByUsername(user.username)
-		err := src.deleteUser(v.id)
+		v, _ := src.getUserByUsername(user.Username)
+		err := src.deleteUser(v.ID)
 		if err != nil {
 			logError(test, err)
 		}
-		v, err = src.getUserByUsername(user.username)
+		v, err = src.getUserByUsername(user.Username)
 		if err != sql.ErrNoRows {
-			test.Errorf("The user %s should not exists anymore !", user.username)
+			test.Errorf("The user %s should not exists anymore !", user.Username)
 		}
 		fmt.Printf("\n")
 	}
@@ -186,4 +180,17 @@ func testDeleteUser(src *UsersSource, test *testing.T) {
 	// if err == nil {
 	// 	test.Errorf("This should return error this casse but i doesnt")
 	// }
+}
+
+func testExportedMethod(src *UsersSource, test *testing.T) {
+	src.clearData()
+	expectedUser := User{Username: "sonph", Password: "dangthaison"}
+	u, err := CreateUser(expectedUser.Username, expectedUser.Password)
+	if err != nil {
+		logError(test, err)
+	}
+	if u.Username != expectedUser.Username || u.Password != expectedUser.Password {
+		test.Errorf("Expected %v but returned %v", expectedUser, u)
+	}
+
 }

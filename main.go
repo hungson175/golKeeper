@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/hungson175/golKeeper/controllers"
 )
 
 func main() {
@@ -13,34 +14,38 @@ func main() {
 }
 
 type Route struct {
-  Name        string
-  Method      string
-  Pattern     string
-  HandlerFunc http.HandlerFunc
+	Name        string
+	Method      string
+	Pattern     string
+	HandlerFunc http.HandlerFunc
 }
 type Routes []Route
-userAPIRoutes := Routes {
-  //TODO: how to post this info ?
-  Route{"Create Account","GET","/create/{username}/{pasword}",userController.CreateAccount},
-  Route{"Login","GET","/login/{username}/{pasword}",userController.Login},
-  Route{"Change password","GET","/changepassword/{username}/{oldpasword}/{newpassword}",userController.ChangePassword},
+
+var userController controllers.UserController = controllers.UserController{}
+var userAPIRoutes = Routes{
+	//TODO: how to post this info ?
+	Route{"Create Account", "GET", "/create/{username}/{password}", userController.CreateAccount},
+	Route{"Login", "GET", "/login/{username}/{password}", userController.Login},
+	Route{"Change password", "GET", "/changepassword/{username}/{oldpassword}/{newpassword}", userController.ChangePassword},
 }
 
 func NewRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	apiRouter := router.PathPrefix("/apis").Subrouter()
+	registerUserAPIRoutes(apiRouter, userAPIRoutes, "user")
+	return router
 }
 
-func registerUserAPIRoutes() {
-  userAPIRouter := apiRouter.PathPrefix("/user")
-  //register routes for user api
-  for _, route := range userAPIRoutes {
-    handler := Logger(route.HandlerFunc, route.Name)
-    userAPIRouter.
-      Methods(route.Method).
-      Path(route.Pattern).
-      Name(route.Name).
-      Handler(handler)
-  }
+func registerUserAPIRoutes(router *mux.Router, routes Routes, controllerName string) {
+	subRouter := router.PathPrefix("/" + controllerName).Subrouter()
+	//register routes for user api
+	for _, route := range routes {
+		handler := Logger(route.HandlerFunc, route.Name)
+		subRouter.
+			Methods(route.Method).
+			Path(route.Pattern).
+			Name(route.Name).
+			Handler(handler)
+	}
 
 }
