@@ -25,8 +25,9 @@ const IPAddress = "127.0.0.1"
 const Port = "3306"
 const EnviVarSQLUsername = "MYSQL_USERNAME"
 const EnvVarSQLPassword = "MYSQL_PASSWORD"
+const dbName = "golkeeper"
 
-func NewDataSource(dbName string) (*DataSource, error) {
+func NewDataSource() (*DataSource, error) {
 	mysqlUsername := os.Getenv(EnviVarSQLUsername)
 	mysqlPassword := os.Getenv(EnvVarSQLPassword)
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", mysqlUsername, mysqlPassword, IPAddress, Port, dbName))

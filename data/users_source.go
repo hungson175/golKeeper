@@ -112,7 +112,7 @@ func (src *UsersSource) updateUser(id int, user *User) (*User, error) {
 	return &newUser, nil
 }
 
-//Delete
+//Delete: return
 func (src *UsersSource) deleteUser(id int) error {
 	_, err := src.db.Exec("delete from users where id = ?", id)
 	if err != nil {
