@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>{{.Title}}</head>
+<body>
+  <form action="/VerifyAccount" method="POST">
+    Username:<br/>
+    <input type="text" name="username" value="{{.Username}}">
+    <br>
+    Password: <br/>
+    <input type="text" name="password">
+    <br/>
+    <input type="submit" value="Login">
+  </form >
+</body>
+</html>

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/hungson175/golKeeper/controllers"
+	"github.com/hungson175/golKeeper/controllers/apis"
 )
 
 func main() {
@@ -21,27 +22,32 @@ type Route struct {
 }
 type Routes []Route
 
-var userController controllers.UserController = controllers.UserController{}
 var userAPIRoutes = Routes{
 	//TODO: how to post this info ?
-	Route{"Create Account", "GET", "/create/{username}/{password}", userController.CreateAccount},
-	Route{"Login", "GET", "/login/{username}/{password}", userController.Login},
-	Route{"Change password", "GET", "/changepassword/{username}/{oldpassword}/{newpassword}", userController.ChangePassword},
+	Route{"Create Account", "GET", "/create/{username}/{password}", apis.CreateAccount},
+	Route{"Login", "GET", "/login/{username}/{password}", apis.Login},
+	Route{"Change password", "GET", "/changepassword/{username}/{oldpassword}/{newpassword}", apis.ChangePassword},
+}
+
+var webRoutes = Routes{
+	Route{"Login page", "GET", "/Login", controllers.Login},
+	Route{"Verify account page", "POST", "/VerifyAccount", controllers.VerifyAccount},
+	Route{"Personal page", "GET", "/PersonalPage", controllers.PersonalPage},
 }
 
 func NewRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
-	apiRouter := router.PathPrefix("/apis").Subrouter()
-	registerUserAPIRoutes(apiRouter, userAPIRoutes, "user")
+	// apiRouter := router.PathPrefix("/apis").Subrouter()
+	// registerUserAPIRoutes(apiRouter.PathPrefix("/user").Subrouter(), userAPIRoutes)
+	registerUserAPIRoutes(router, webRoutes)
 	return router
 }
 
-func registerUserAPIRoutes(router *mux.Router, routes Routes, controllerName string) {
-	subRouter := router.PathPrefix("/" + controllerName).Subrouter()
+func registerUserAPIRoutes(router *mux.Router, routes Routes) {
 	//register routes for user api
 	for _, route := range routes {
 		handler := Logger(route.HandlerFunc, route.Name)
-		subRouter.
+		router.
 			Methods(route.Method).
 			Path(route.Pattern).
 			Name(route.Name).

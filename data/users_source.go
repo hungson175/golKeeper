@@ -25,10 +25,12 @@ func CreateUser(username string, password string) (*User, error) {
 	return createdUser, err
 }
 
-type InvalidPasswordError struct{}
+type InvalidPasswordError struct {
+	Message string `json: "message"`
+}
 
 func (e InvalidPasswordError) Error() string {
-	return "Invalid password"
+	return e.Message
 }
 
 //Login: return user and nil if success, otherwise return not nil error
@@ -39,7 +41,7 @@ func Login(username string, password string) (*User, error) {
 		return nil, err
 	}
 	if ouser.Password != password {
-		return nil, InvalidPasswordError{}
+		return nil, InvalidPasswordError{"Invalid password"}
 	} else {
 		return ouser, nil
 	}
