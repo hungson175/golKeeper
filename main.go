@@ -36,6 +36,8 @@ var webRoutes = Routes{
 	Route{"Select Account Action", "POST", "/AccountAction", controllers.AccountAction},
 	Route{"Create account", "POST", "/CreateAccount", controllers.CreateAccount},
 	Route{"Personal page", "GET", "/PersonalPage", controllers.PersonalPage},
+	Route{"Edit goal", "GET", "/EditGoal", controllers.EditGoal},
+	Route{"Save Goal", "POST", "/SaveGoal", controllers.SaveGoal},
 }
 
 func NewRouter() *mux.Router {

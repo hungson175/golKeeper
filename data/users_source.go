@@ -4,21 +4,29 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sync"
 )
 
 type UsersSource struct {
 	db *sql.DB
 }
 
-var userDataSource = UsersSource{db: GetDBInstance()}
+//var userDataSource UsersSource
+var userSourceSync sync.Once
+var _userDataSource *UsersSource
 
 func GetUserSource() *UsersSource {
-	return &userDataSource
+
+	userSourceSync.Do(func() { _userDataSource = &UsersSource{db: GetDBInstance()} })
+	if _userDataSource == nil {
+		panic(errors.New("usersource is nil"))
+	}
+	return _userDataSource
 }
 
 func CreateUser(username string, password string) (*User, error) {
 	inputUser := User{Username: username, Password: password}
-	createdUser, err := userDataSource.createUser(&inputUser)
+	createdUser, err := GetUserSource().createUser(&inputUser)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +43,7 @@ func (e InvalidPasswordError) Error() string {
 
 //Login: return user and nil if success, otherwise return not nil error
 func Login(username string, password string) (*User, error) {
-	ouser, err := userDataSource.getUserByUsername(username)
+	ouser, err := GetUserSource().getUserByUsername(username)
 	if err != nil {
 		//TOLEARN: here - in real code, if oyou dont define what error is that => pay later on !
 		return nil, err
@@ -47,13 +55,21 @@ func Login(username string, password string) (*User, error) {
 	}
 }
 
+func GetUserByUsername(username string) *User {
+	user, err := GetUserSource().getUserByUsername(username)
+	if err != nil {
+		return nil
+	}
+	return user
+}
+
 func ChangePassword(username string, oldPassword string, newPassword string) (*User, error) {
 	user, err := Login(username, oldPassword)
 	if err != nil {
 		return nil, err
 	}
 	user.Password = newPassword
-	user, err = userDataSource.updateUser(user.ID, user)
+	user, err = GetUserSource().updateUser(user.ID, user)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +141,12 @@ func (src *UsersSource) getUserByUsername(username string) (*User, error) {
 
 //Read: all
 func (src *UsersSource) getAllUsers() (Users, error) {
+	if src == nil {
+		fmt.Println("Users source is nil")
+	}
+	if src.db == nil {
+		fmt.Println("database  is nil")
+	}
 	rows, err := src.db.Query("select * from users")
 	if err != nil {
 		return nil, err

@@ -3,6 +3,7 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -35,9 +36,16 @@ func newDatabase() *sql.DB {
 }
 
 var dbSync sync.Once
+var database *sql.DB
 
 func GetDBInstance() *sql.DB {
-	var db *sql.DB
-	dbSync.Do(func() { db = newDatabase() })
-	return db
+	dbSync.Do(func() {
+		fmt.Println("Database Init: begin....")
+		database = newDatabase()
+		fmt.Println("Database init: done ")
+	})
+	if database == nil {
+		panic(errors.New("nil db returned"))
+	}
+	return database
 }
