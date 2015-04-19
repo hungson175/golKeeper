@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html>
-<head>{{.Title}}</head>
 <body>
-  <form action="/AccountAction" method="POST">
+  <form action="/CreateAccount" method="POST">
     Username:<br/>
     <input type="text" name="username" value="{{.Username}}">
-    <br>
+    <br/>
     Password: <br/>
     <input type="text" name="password">
     <br/>
-    <input type="submit" name ="login_button" value="Login">
-    <input type="submit" name ="signup_button" value="Signup">
+    Confirm password: <br/>
+    <input type="text" name="confirmed_password">
+    <br/>
+
+    <input type="submit" value="Sign up">
   </form >
 </body>
 </html>

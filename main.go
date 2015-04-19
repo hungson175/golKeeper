@@ -32,6 +32,9 @@ var userAPIRoutes = Routes{
 var webRoutes = Routes{
 	Route{"Login page", "GET", "/Login", controllers.Login},
 	Route{"Verify account page", "POST", "/VerifyAccount", controllers.VerifyAccount},
+	Route{"Signup", "GET", "/Signup", controllers.Signup},
+	Route{"Select Account Action", "POST", "/AccountAction", controllers.AccountAction},
+	Route{"Create account", "POST", "/CreateAccount", controllers.CreateAccount},
 	Route{"Personal page", "GET", "/PersonalPage", controllers.PersonalPage},
 }
 
